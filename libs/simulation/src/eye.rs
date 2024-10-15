@@ -14,6 +14,7 @@ const FOV_RANGE: Number = 0.25;
 /// PI/2 =  90°
 /// PI   = 180°
 /// 2*PI = 360°
+#[allow(clippy::excessive_precision)]
 const FOV_ANGLE: Number = 3.92699081699; // 225 deg
 
 /// "Resolution" of an eye

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+lib-neural-network = { path = "../neural-network" }
 nalgebra = { version = "0.33", features = ["rand-no-std"] }
 rand = "0.8"
 
