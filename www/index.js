@@ -5,25 +5,12 @@ import { Simulation } from "lib-simulation-wasm";
 const simulation = new Simulation();
 
 const viewport = document.getElementById("viewport");
-
-const vw = Math.max(
-  document.documentElement.clientWidth || 0,
-  window.innerWidth || 0,
-);
-const vh = Math.max(
-  document.documentElement.clientHeight || 0,
-  window.innerHeight || 0,
-);
-const viewportWidth = vw - 16;
-const viewportHeight = vh - 16;
-const viewportScale = window.devicePixelRatio || 1;
-viewport.width = viewportWidth * viewportScale;
-viewport.height = viewportHeight * viewportScale;
-viewport.style.height = viewportHeight + "px";
-viewport.style.width = viewportWidth + "px";
-
 const ctx = viewport.getContext("2d");
-ctx.scale(viewportScale, viewportScale);
+
+let viewportWidth = 512;
+let viewportHeight = 512;
+let viewportScale = window.devicePixelRatio || 1;
+resizeCanvas();
 
 CanvasRenderingContext2D.prototype.drawTriangle = function(
   x,
@@ -117,3 +104,27 @@ function redraw() {
 }
 
 redraw();
+
+// ensure canvas always takes up the entire screen
+window.addEventListener("resize", resizeCanvas, false);
+
+function resizeCanvas() {
+  const vw = Math.max(
+    document.documentElement.clientWidth || 0,
+    window.innerWidth || 0,
+  );
+  const vh = Math.max(
+    document.documentElement.clientHeight || 0,
+    window.innerHeight || 0,
+  );
+
+  viewportWidth = vw;
+  viewportHeight = vh;
+  viewportScale = window.devicePixelRatio || 1;
+
+  viewport.width = viewportWidth * viewportScale;
+  viewport.height = viewportHeight * viewportScale;
+  viewport.style.height = viewportHeight + "px";
+  viewport.style.width = viewportWidth + "px";
+  ctx.scale(viewportScale, viewportScale);
+}
