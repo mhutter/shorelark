@@ -1,3 +1,5 @@
+use std::iter::once;
+
 use rand::{Rng, RngCore};
 
 /// The "number" type used throughout the code
@@ -38,6 +40,32 @@ impl Network {
             .iter()
             .fold(inputs, |inputs, layer| layer.propagate(&inputs))
     }
+
+    pub fn weights(&self) -> impl Iterator<Item = Number> + '_ {
+        self.layers
+            .iter()
+            .flat_map(|layer| layer.neurons.iter())
+            .flat_map(|neuron| once(&neuron.bias).chain(&neuron.weights))
+            .copied()
+    }
+
+    pub fn from_weights(
+        layers: &[LayerTopology],
+        weights: impl IntoIterator<Item = Number>,
+    ) -> Self {
+        assert!(layers.len() > 1);
+
+        let mut weights = weights.into_iter();
+
+        let layers = layers
+            .windows(2)
+            .map(|layers| Layer::from_weights(layers[0].neurons, layers[1].neurons, &mut weights))
+            .collect();
+
+        assert!(weights.next().is_none(), "got too many weights");
+
+        Self { layers }
+    }
 }
 
 #[derive(Debug)]
@@ -59,6 +87,17 @@ impl Layer {
             .iter()
             .map(|neuron| neuron.propagate(inputs))
             .collect()
+    }
+
+    fn from_weights(
+        input_size: usize,
+        output_size: usize,
+        weights: &mut dyn Iterator<Item = Number>,
+    ) -> Self {
+        let neurons = (0..output_size)
+            .map(|_| Neuron::from_weights(input_size, weights))
+            .collect();
+        Self { neurons }
     }
 }
 
@@ -94,6 +133,14 @@ impl Neuron {
 
         // Apply result and clamp lower values to 0.0
         (self.bias + output).max(0.0)
+    }
+
+    fn from_weights(input_size: usize, weights: &mut dyn Iterator<Item = Number>) -> Self {
+        let bias = weights.next().expect("too few weights");
+        let weights = (0..input_size)
+            .map(|_| weights.next().expect("too few weights"))
+            .collect();
+        Self { bias, weights }
     }
 }
 
@@ -203,5 +250,41 @@ mod tests {
 
         let output = network.propagate(vec![1.0]);
         assert_relative_eq!(output.as_slice(), [1.0].as_ref());
+    }
+
+    #[test]
+    fn weights() {
+        let network = Network {
+            layers: vec![
+                Layer {
+                    neurons: vec![Neuron {
+                        bias: 0.1,
+                        weights: vec![0.2, 0.3, 0.4],
+                    }],
+                },
+                Layer {
+                    neurons: vec![Neuron {
+                        bias: 0.5,
+                        weights: vec![0.6, 0.7, 0.8],
+                    }],
+                },
+            ],
+        };
+
+        let actual = network.weights().collect::<Vec<_>>();
+        let expected = vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+
+        assert_relative_eq!(actual.as_slice(), expected.as_slice());
+    }
+
+    #[test]
+    fn from_weights() {
+        let layers = &[LayerTopology { neurons: 3 }, LayerTopology { neurons: 2 }];
+
+        let weights = vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8];
+        let network = Network::from_weights(layers, weights.clone());
+        let actual: Vec<_> = network.weights().collect();
+
+        assert_relative_eq!(actual.as_slice(), weights.as_slice());
     }
 }
