@@ -8,12 +8,14 @@ mod crossover_method;
 mod individual;
 mod mutation_method;
 mod selection_method;
+mod statistics;
 
 pub use chromosome::*;
 pub use crossover_method::*;
 pub use individual::*;
 pub use mutation_method::*;
 pub use selection_method::*;
+pub use statistics::*;
 
 pub struct GeneticAlgorithm<S>
 where
@@ -45,13 +47,13 @@ where
     /// # Panics
     ///
     /// Will panic if `population` is empty.
-    pub fn evolve<I>(&self, rng: &mut dyn RngCore, population: &[I]) -> Vec<I>
+    pub fn evolve<I>(&self, rng: &mut dyn RngCore, population: &[I]) -> (Vec<I>, Statistics)
     where
         I: Individual,
     {
         assert!(!population.is_empty(), "Cannot evolve an empty population");
 
-        (0..population.len())
+        let new_population = (0..population.len())
             .map(|_| {
                 // Selection
                 let parent_a = self.selection_method.select(rng, population).chromosome();
@@ -65,7 +67,10 @@ where
 
                 I::create(child)
             })
-            .collect()
+            .collect();
+
+        let stats = Statistics::new(population);
+        (new_population, stats)
     }
 }
 

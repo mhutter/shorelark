@@ -1,7 +1,7 @@
 use std::f32::consts::FRAC_PI_2;
 
 use lib_genetic_algorithm::{
-    GaussianMutation, GeneticAlgorithm, RouletteWheelSelection, UniformCrossover,
+    GaussianMutation, GeneticAlgorithm, RouletteWheelSelection, Statistics, UniformCrossover,
 };
 use nalgebra::{distance, wrap, Rotation2, Vector2};
 use rand::{Rng, RngCore};
@@ -51,14 +51,27 @@ impl Simulation {
     }
 
     /// Perform a single step of the simulation
-    pub fn step(&mut self, rng: &mut dyn RngCore) {
+    ///
+    /// Returns `Some(Statistics)` if the population evolved.
+    pub fn step(&mut self, rng: &mut dyn RngCore) -> Option<Statistics> {
         self.process_collisions(rng);
         self.process_brains();
         self.process_movements();
 
         self.age += 1;
         if self.age > GENERATION_LENGTH {
-            self.evolve(rng);
+            Some(self.evolve(rng))
+        } else {
+            None
+        }
+    }
+
+    /// train until the end of the current generation
+    pub fn train(&mut self, rng: &mut dyn RngCore) -> Statistics {
+        loop {
+            if let Some(stats) = self.step(rng) {
+                return stats;
+            }
         }
     }
 
@@ -105,7 +118,7 @@ impl Simulation {
         }
     }
 
-    fn evolve(&mut self, rng: &mut dyn RngCore) {
+    fn evolve(&mut self, rng: &mut dyn RngCore) -> Statistics {
         self.age = 0;
         self.generation += 1;
 
@@ -116,7 +129,7 @@ impl Simulation {
             .map(AnimalIndividual::from_animal)
             .collect::<Vec<_>>();
 
-        let evolved_population = self.ga.evolve(rng, &current_population);
+        let (evolved_population, stats) = self.ga.evolve(rng, &current_population);
 
         self.world.animals = evolved_population
             .into_iter()
@@ -126,6 +139,8 @@ impl Simulation {
         for food in &mut self.world.foods {
             food.position = rng.gen();
         }
+
+        stats
     }
 
     pub fn world(&self) -> &World {

@@ -7,12 +7,17 @@ const simulation = new Simulation();
 const viewport = document.getElementById("viewport");
 const ctx = viewport.getContext("2d");
 
+viewport.onclick = function () {
+  const stats = simulation.train();
+  console.log(stats);
+};
+
 let viewportWidth = 512;
 let viewportHeight = 512;
 let viewportScale = window.devicePixelRatio || 1;
 resizeCanvas();
 
-CanvasRenderingContext2D.prototype.drawTriangle = function(
+CanvasRenderingContext2D.prototype.drawTriangle = function (
   x,
   y,
   size,
@@ -44,7 +49,7 @@ CanvasRenderingContext2D.prototype.drawTriangle = function(
   this.fill();
 };
 
-CanvasRenderingContext2D.prototype.drawCircle = function(x, y, radius) {
+CanvasRenderingContext2D.prototype.drawCircle = function (x, y, radius) {
   this.beginPath();
   this.arc(x, y, radius, 0, 2.0 * Math.PI);
   this.fillStyle = "rgb(243, 198, 35)"; // brigh yellow
